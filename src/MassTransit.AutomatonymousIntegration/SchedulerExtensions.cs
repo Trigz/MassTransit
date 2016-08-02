@@ -61,6 +61,14 @@ namespace Automatonymous
         }
 
         public static EventActivityBinder<TInstance> Schedule<TInstance, TMessage>(this EventActivityBinder<TInstance> source,
+            Schedule<TInstance, TMessage> schedule, EventMessageFactory<TInstance, TMessage> messageFactory)
+            where TInstance : class, SagaStateMachineInstance
+            where TMessage : class
+        {
+            return source.Add(new ScheduleActivity<TInstance, TMessage>(messageFactory, schedule, x => schedule.Delay));
+        }
+
+        public static EventActivityBinder<TInstance> Schedule<TInstance, TMessage>(this EventActivityBinder<TInstance> source,
             Schedule<TInstance, TMessage> schedule, EventMessageFactory<TInstance, TMessage> messageFactory, ScheduleDelayProvider<TInstance> delayProvider)
             where TInstance : class, SagaStateMachineInstance
             where TMessage : class
@@ -132,6 +140,16 @@ namespace Automatonymous
             where TMessage : class
         {
             return source.Add(new ScheduleActivity<TInstance, TData, TMessage>(messageFactory, schedule, x => schedule.Delay));
+        }
+
+        public static EventActivityBinder<TInstance, TData> Schedule<TInstance, TData, TMessage>(
+            this EventActivityBinder<TInstance, TData> source, Schedule<TInstance, TMessage> schedule,
+            EventMessageFactory<TInstance, TData, TMessage> messageFactory, Uri destinationUri)
+            where TInstance : class, SagaStateMachineInstance
+            where TData : class
+            where TMessage : class
+        {
+            return source.Add(new ScheduleActivity<TInstance, TData, TMessage>(messageFactory, schedule, x => schedule.Delay, destinationUri));
         }
 
         public static EventActivityBinder<TInstance, TData> Schedule<TInstance, TData, TMessage>(

@@ -118,6 +118,7 @@ namespace Automatonymous.Activities
         where TMessage : class
     {
         readonly ScheduleDelayProvider<TInstance, TData> _delayProvider;
+        readonly Uri _destinationUri;
         readonly EventMessageFactory<TInstance, TData, TMessage> _messageFactory;
         readonly Schedule<TInstance, TMessage> _schedule;
         readonly IPipe<SendContext> _sendPipe;
@@ -139,6 +140,13 @@ namespace Automatonymous.Activities
             _sendPipe = Pipe.Empty<SendContext>();
         }
 
+        public ScheduleActivity(EventMessageFactory<TInstance, TData, TMessage> messageFactory, Schedule<TInstance, TMessage> schedule,
+            ScheduleDelayProvider<TInstance, TData> delayProvider, Uri destinationUri)
+            : this(messageFactory, schedule, delayProvider)
+        {
+            _destinationUri = destinationUri;
+        }
+
         void Visitable.Accept(StateMachineVisitor inspector)
         {
             inspector.Visit(this);
@@ -156,7 +164,9 @@ namespace Automatonymous.Activities
 
             var delay = _delayProvider(consumeContext);
 
-            ScheduledMessage<TMessage> scheduledMessage = await schedulerContext.ScheduleSend(delay, message, _sendPipe).ConfigureAwait(false);
+            ScheduledMessage<TMessage> scheduledMessage = _destinationUri == null
+                ? await schedulerContext.ScheduleSend(delay, message, _sendPipe).ConfigureAwait(false)
+                : await schedulerContext.ScheduleSend(delay, message, _sendPipe, _destinationUri).ConfigureAwait(false);
 
             Guid? previousTokenId = _schedule.GetTokenId(context.Instance);
             if (previousTokenId.HasValue)
