@@ -76,6 +76,14 @@ namespace MassTransit
             return scheduler.ScheduleSend(scheduledTime, message, pipe, cancellationToken);
         }
 
+        public static Task<ScheduledMessage<T>> ScheduleSend<T>(this MessageSchedulerContext scheduler, TimeSpan delay, T message,
+            IPipe<SendContext> pipe, Uri destinationUri, CancellationToken cancellationToken = default(CancellationToken))
+            where T : class
+        {
+            var scheduledTime = DateTime.UtcNow + delay;
+            return scheduler.ScheduleSend(destinationUri, scheduledTime, message, pipe, cancellationToken);
+        }
+
         /// <summary>
         ///     Sends an object as a message, using the type of the message instance.
         /// </summary>

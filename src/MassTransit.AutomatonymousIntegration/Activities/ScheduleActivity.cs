@@ -19,12 +19,12 @@ namespace Automatonymous.Activities
     using MassTransit.Scheduling;
 
 
-    public class ScheduleActivity<TInstance, TMessage> :
-        Activity<TInstance>
+    public class ScheduleActivity<TInstance, TMessage> : Activity<TInstance>
         where TInstance : class, SagaStateMachineInstance
         where TMessage : class
     {
         readonly ScheduleDelayProvider<TInstance> _delayProvider;
+        readonly Uri _destinationUri;
         readonly EventMessageFactory<TInstance, TMessage> _messageFactory;
         readonly Schedule<TInstance> _schedule;
         readonly IPipe<SendContext> _sendPipe;
@@ -37,6 +37,13 @@ namespace Automatonymous.Activities
             _delayProvider = delayProvider;
 
             _sendPipe = Pipe.Empty<SendContext>();
+        }
+
+        public ScheduleActivity(EventMessageFactory<TInstance, TMessage> messageFactory, Schedule<TInstance> schedule,
+            ScheduleDelayProvider<TInstance> delayProvider, Uri destinationUri)
+            : this(messageFactory, schedule, delayProvider)
+        {
+            _destinationUri = destinationUri;
         }
 
         public ScheduleActivity(EventMessageFactory<TInstance, TMessage> messageFactory, Schedule<TInstance> schedule, Action<SendContext> contextCallback,
@@ -90,7 +97,9 @@ namespace Automatonymous.Activities
 
             var delay = _delayProvider(consumeContext);
 
-            ScheduledMessage<TMessage> scheduledMessage = await schedulerContext.ScheduleSend(delay, message, _sendPipe).ConfigureAwait(false);
+            ScheduledMessage<TMessage> scheduledMessage = _destinationUri == null
+                ? await schedulerContext.ScheduleSend(delay, message, _sendPipe).ConfigureAwait(false)
+                : await schedulerContext.ScheduleSend(delay, message, _sendPipe, _destinationUri).ConfigureAwait(false);
 
             Guid? previousTokenId = _schedule.GetTokenId(context.Instance);
             if (previousTokenId.HasValue)
@@ -103,8 +112,7 @@ namespace Automatonymous.Activities
     }
 
 
-    public class ScheduleActivity<TInstance, TData, TMessage> :
-        Activity<TInstance, TData>
+    public class ScheduleActivity<TInstance, TData, TMessage> : Activity<TInstance, TData>
         where TInstance : class, SagaStateMachineInstance
         where TData : class
         where TMessage : class
@@ -161,8 +169,7 @@ namespace Automatonymous.Activities
             await next.Execute(context).ConfigureAwait(false);
         }
 
-        Task Activity<TInstance, TData>.Faulted<TException>(BehaviorExceptionContext<TInstance, TData, TException> context,
-            Behavior<TInstance, TData> next)
+        Task Activity<TInstance, TData>.Faulted<TException>(BehaviorExceptionContext<TInstance, TData, TException> context, Behavior<TInstance, TData> next)
         {
             return next.Faulted(context);
         }

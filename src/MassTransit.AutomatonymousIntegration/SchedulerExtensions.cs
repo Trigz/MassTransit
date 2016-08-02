@@ -53,11 +53,11 @@ namespace Automatonymous
         }
 
         public static EventActivityBinder<TInstance> Schedule<TInstance, TMessage>(this EventActivityBinder<TInstance> source,
-            Schedule<TInstance, TMessage> schedule, EventMessageFactory<TInstance, TMessage> messageFactory)
+            Schedule<TInstance, TMessage> schedule, EventMessageFactory<TInstance, TMessage> messageFactory, Uri destinationUri)
             where TInstance : class, SagaStateMachineInstance
             where TMessage : class
         {
-            return source.Add(new ScheduleActivity<TInstance, TMessage>(messageFactory, schedule, x => schedule.Delay));
+            return source.Add(new ScheduleActivity<TInstance, TMessage>(messageFactory, schedule, x => schedule.Delay, destinationUri));
         }
 
         public static EventActivityBinder<TInstance> Schedule<TInstance, TMessage>(this EventActivityBinder<TInstance> source,
